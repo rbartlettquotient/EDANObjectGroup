@@ -539,7 +539,6 @@
         }
 
         if(isset($this->results_json) && array_key_exists('MissingParams', $this->results_json )) {
-          $this->errors[] = "Could not delete page using releasePage. deletePage() " . $this->results_json['MissingParams'];
           return false;
         }
 
@@ -720,7 +719,7 @@
           $feature_array['url'] = $this->objectGroupImageUri;
           $params['feature'] = json_encode($feature_array);
         }
-dpm($params);
+
         // settings may have values for: disableMenu
         //@todo: this setting will be deprecated
         /* no need to setMenu() at this point
@@ -1056,6 +1055,7 @@ dpm($params);
             $this->objectList = $obj_list;
           }
         }
+      }
 
       }
 
