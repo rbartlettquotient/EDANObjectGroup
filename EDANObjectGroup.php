@@ -539,6 +539,7 @@
         }
 
         if(isset($this->results_json) && array_key_exists('MissingParams', $this->results_json )) {
+        $this->errors[] = "Could not set default page. setDefaultPage() " . $this->results_json['MissingParams'];
           return false;
         }
 
@@ -1055,6 +1056,8 @@
             $this->objectList = $obj_list;
           }
         }
+      else {
+        $this->objectList = NULL;
       }
 
       }
