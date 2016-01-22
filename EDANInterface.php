@@ -3,8 +3,7 @@
 /**
  * EDANInterface
  *
- * @version 0.10.1 - Updated signing, added X-AppVersion, deprecated unused members:
- *   metadataQuery(), tagQuery(), listQuery(), isValid(), $results,
+ * @version 1.0 MDS original version minus Drupal-centric code.
  */
 
   namespace EDAN {
