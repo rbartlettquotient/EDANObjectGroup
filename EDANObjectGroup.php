@@ -7,6 +7,9 @@
  *
  * Version 1.0: for EDAN API 1.0 documented at http://edantest.si.edu/apidocs/index.html
  *
+ * https://github.com/rbartlettquotient/EDANObjectGroup
+ *
+ * 2015-01-28
  */
 
   namespace EDAN\OGMT {
@@ -185,7 +188,7 @@
 
     class ObjectGroup extends \EDAN\EDANBase {
 
-      public $objectGroupId;
+      protected $objectGroupId;
       protected $deleted; // true or false
 
       public $objectGroupPages;
@@ -451,8 +454,8 @@
         // objectGroupImageUri - "feature": { "type": "image", "url": "" }
         if(array_key_exists('feature', $arr)) {
           $feature_array = $arr['feature'];
-          if(array_key_exists('uri', $feature_array)) {
-            $this->objectGroupImageUri = $feature_array['uri'];
+          if(array_key_exists('url', $feature_array)) {
+            $this->objectGroupImageUri = $feature_array['url'];
           }
         } // if we have a feature
 
@@ -517,13 +520,11 @@
           return false;
         }
 
-        $this->defaultPageId = $pageId;
-
         $params = array();
         $service = 'ogmt/v1.0/adminogmt/setDefaultPage.htm';
 
         $params['objectGroupId'] = $this->objectGroupId;
-        $params['pageId'] = $this->defaultPageId;
+        $params['pageId'] = $pageId;
 
         // save the object group
         $got_object = $this->edan_connection->callEDAN($service, $params);
@@ -543,6 +544,7 @@
           return false;
         }
 
+        $this->defaultPageId = $pageId;
         return true;
 
       } // set the default page for this object group
@@ -619,11 +621,22 @@
           return false;
         }
 
+        // if we were able to set the page order successfully, update the page order for this object group
+        $tmp = $this->objectGroupPages;
+        $this->objectGroupPages = array();
+        foreach($pages as $key=> $pageId) {
+          foreach($tmp as $k => $page) {
+            if($page->getPageId() == $pageId) {
+              $this->objectGroupPages[] = $page;
+            }
+          }
+        }
+
         return true;
       } // save the menu for the object group, in the current order
 
       public function fileListing() {
-        // is this necessary? not used in existing modules
+        // not used in existing modules
       }
 
       public function getToken() {
@@ -686,7 +699,7 @@
           return false;
         }
 
-        //@todo: On save attempt, load object groups with matching title
+        //@todo: On save attempt, load object groups with matching uri
         //if count > 0, fail the attempted save
 
         $params = array();
@@ -751,6 +764,7 @@
         // set the id if we got it back
         if (array_key_exists('objectGroupId', $this->results_json)) {
           $this->objectGroupId = $this->results_json['objectGroupId'];
+          $this->uri = array_key_exists('url', $this->results_json) ? $this->results_json['url'] : '';
         }
         else {
           $this->errors[] = 'Unable to save Object Group. No ObjectGroupId found in response. save()';
@@ -896,8 +910,12 @@
 
         // should we make sure results_json contains the object group?
 
-        // update pages for this group
-        unset($this->objectgroup_pages[$pageId]);
+        // delete the page from this object group
+        foreach($this->objectGroupPages as $k => $page) {
+          if($page->getPageId() == $pageId) {
+            unset($this->objectGroupPages[$k]);
+          }
+        }
         return true;
 
       } // delete the specified page from the object group
@@ -930,6 +948,7 @@
         $this->title = $this->content = $this->feature = $this->pageImageUri = $this->listTitle = $this->uri = '';
         $this->settings = NULL;
         $this->disableObjectListing = false;
+      $this->objectList = NULL;
 
         if(NULL !== $edan_connection) {
           $this->edan_connection = $edan_connection;
@@ -1374,7 +1393,6 @@
           $params['pageId'] = $this->pageId;
         }
         $params['item'] = $itemId;
-        //@todo or items?
         $params['afterId'] = $afterItemId; // $item will be moved after $afterItem in the object list
 
         /*
@@ -1405,7 +1423,7 @@
         // recreate our list so this object list has the objects in the correct order
         if(is_array($this->results_json)
           && array_key_exists('lists', $this->results_json)) {
-          $this->loadFromArray($this->results_json['lists'], $this->objectGroupId, $this->pageId);
+          $this->loadFromArray($this->results_json['lists']['items'], $this->objectGroupId, $this->pageId);
         }
         return true;
 
@@ -1618,7 +1636,7 @@
                 $this->queryFacets[] = $v;
               }
               else {
-                $this->queryTerms = $v;
+                $this->queryTerms = urldecode($v);
               }
             }
             $this->items = array();
@@ -1654,14 +1672,15 @@
 
         $ok = $this->clear();
         if(!$ok) {
-          return false;
+        //  return false;
         }
 
         if($this->listType == 0) {
           // if we are saving search params but listType is set for hand-picked objects, change the listType
           $ok = $this->modifyType(1);
+          $this->listType = 1;
           if(!$ok) {
-            return false;
+          //  return false;
           }
         }
 
@@ -1681,14 +1700,15 @@
         $ok = $this->clear(false);
 
         if(!$ok) {
-          return false;
+        //  return false;
         }
 
         if($this->listType == 1) {
           // if we are saving hand-picked list of items but listType is currently set for search params, change the listType
           $ok = $this->modifyType(0);
+          $this->listType = 0;
           if(!$ok) {
-            return false;
+          //  return false;
           }
         }
 
